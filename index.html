@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Little Todo：一个轻巧、离线可用的中文待办清单。无需登录，数据保存在当前浏览器。">
+  <meta name="color-scheme" content="light dark">
+  <title>Little Todo · 一件一件，慢慢完成</title>
+  <style>
+    :root { color-scheme:light; --bg:#f3f3ec; --card:#fffef9; --ink:#25382e; --muted:#6c776e; --line:#e0e5da; --accent:#42634b; --soft:#e9efe4; --shadow:0 16px 60px #26382b0a; }
+    :root[data-theme="dark"] { color-scheme:dark; --bg:#18211b; --card:#222e25; --ink:#edf0e7; --muted:#a3b19f; --line:#3a493b; --accent:#b4d39f; --soft:#334331; --shadow:0 16px 60px #0002; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button,input { -webkit-tap-highlight-color:transparent; }
+    button:focus-visible,input:focus-visible,a:focus-visible { outline:3px solid #a1b988; outline-offset:4px; }
+    button:disabled { opacity:.42; cursor:default; }
+    .wrap { max-width:850px; padding:40px 24px 32px; margin:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:64px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:750; font-size:19px; letter-spacing:-.5px; }
+    .mark { width:34px; height:34px; display:grid; place-items:center; background:var(--accent); color:var(--card); border-radius:11px; font-size:23px; }
+    .quiet { border:1px solid var(--line); border-radius:10px; color:var(--ink); background:transparent; padding:7px 13px; }
+    .quiet:hover { background:var(--soft); }
+    .eyebrow { color:var(--accent); font:700 11px/1.4 ui-monospace,monospace; letter-spacing:3px; }
+    .intro { margin-bottom:28px; }
+    h1 { font-size:clamp(28px,5vw,42px); line-height:1.3; letter-spacing:-1.4px; margin:13px 0; font-weight:650; }
+    .intro p { color:var(--muted); margin:0; }
+    .card { border:1px solid var(--line); border-radius:23px; background:var(--card); overflow:hidden; box-shadow:var(--shadow); }
+    .summary { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:25px 28px; border-bottom:1px solid var(--line); }
+    .summary strong { display:block; font-size:17px; font-weight:650; }
+    .summary small { color:var(--muted); }
+    .meter { width:140px; }
+    .meter-label { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:7px; }
+    progress { display:block; width:100%; height:6px; border:0; appearance:none; border-radius:99px; overflow:hidden; background:var(--soft); }
+    progress::-webkit-progress-bar { background:var(--soft); }
+    progress::-webkit-progress-value { background:var(--accent); border-radius:99px; }
+    progress::-moz-progress-bar { background:var(--accent); }
+    form { display:flex; gap:10px; padding:24px 28px 18px; }
+    .input { min-width:0; flex:1; border:1px solid var(--line); color:var(--ink); border-radius:12px; background:var(--bg); padding:13px 15px; }
+    .input::placeholder { color:var(--muted); }
+    .primary { border:0; border-radius:12px; color:var(--card); background:var(--accent); padding:0 20px; font-weight:650; white-space:nowrap; }
+    .primary:hover { filter:brightness(.94); }
+    .toolbar { padding:0 28px 17px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .filters { display:flex; background:var(--bg); border-radius:9px; padding:3px; gap:3px; }
+    .filter { border:0; background:transparent; color:var(--muted); font-size:13px; padding:5px 12px; border-radius:7px; }
+    .filter[aria-pressed="true"] { background:var(--card); color:var(--ink); box-shadow:0 1px 5px #0001; }
+    .text-button { color:var(--muted); background:transparent; border:0; font-size:12px; padding:8px 0 8px 8px; }
+    .text-button:hover:enabled { color:var(--ink); }
+    ul { list-style:none; padding:0; margin:0; }
+    .task { display:flex; align-items:center; gap:13px; border-top:1px solid var(--line); padding:17px 28px; }
+    .check { appearance:none; display:grid; place-content:center; width:21px; height:21px; flex:none; border:1.5px solid var(--muted); border-radius:7px; cursor:pointer; margin:0; }
+    .check:checked { background:var(--accent); border-color:var(--accent); }
+    .check:checked::after { content:"✓"; font-size:15px; color:var(--card); line-height:1; }
+    .task-label { flex:1; min-width:0; overflow-wrap:anywhere; cursor:pointer; }
+    .task.done .task-label { text-decoration:line-through; color:var(--muted); }
+    .delete { width:32px; height:32px; flex:none; background:transparent; border:0; color:var(--muted); border-radius:8px; font-size:19px; }
+    .delete:hover { background:var(--soft); color:var(--ink); }
+    .empty { text-align:center; padding:45px 20px 49px; border-top:1px solid var(--line); }
+    .empty-icon { display:block; color:var(--accent); font-size:29px; margin-bottom:8px; }
+    .empty strong { display:block; font-weight:600; }
+    .empty p { color:var(--muted); font-size:13px; margin:6px 0 0; }
+    .foot { padding:14px 28px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
+    footer { margin-top:25px; display:flex; justify-content:space-between; gap:15px; color:var(--muted); font-size:12px; }
+    footer a { color:inherit; text-decoration:none; border-bottom:1px solid var(--line); }
+    .notice { min-height:25px; color:var(--muted); font-size:12px; margin:14px 5px 0; }
+    .undo { color:var(--accent); background:transparent; border:0; text-decoration:underline; margin-left:8px; }
+    [hidden] { display:none!important; }
+    @media(max-width:540px) { .wrap { padding:23px 16px; } header { margin-bottom:40px; } .summary { padding:21px 19px; } .meter { width:100px; } form { padding:21px 18px 17px; gap:8px; } .primary { padding:0 13px; } .toolbar { padding:0 18px 17px; gap:5px; } .filter { padding:5px 9px; } .task { padding:15px 19px; } .foot { padding:13px 19px; } footer { flex-wrap:wrap; } }
+    @media(prefers-reduced-motion:no-preference) { button,.check { transition:background .15s,color .15s; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand"><span class="mark" aria-hidden="true">✓</span> little todo<span style="color:var(--muted);font-weight:400">.</span></div>
+      <button class="quiet" id="theme" type="button" aria-label="切换至深色模式">深色模式</button>
+    </header>
+    <section class="intro" aria-labelledby="title">
+      <div class="eyebrow">A LITTLE PROGRESS, EVERY DAY</div>
+      <h1 id="title">一件一件，慢慢完成。</h1>
+      <p>把脑海里的小事写下来，给今天留一点从容。</p>
+    </section>
+    <section class="card" aria-label="待办清单">
+      <div class="summary">
+        <div><strong>我的待办</strong><small id="remaining" aria-live="polite">今天，从一件小事开始</small></div>
+        <div class="meter"><div class="meter-label"><span>完成进度</span><span id="percent">0%</span></div><progress id="progress" value="0" max="100" aria-label="任务完成进度">0%</progress></div>
+      </div>
+      <form id="add-form" autocomplete="off">
+        <input class="input" id="new-task" aria-label="新的待办事项" placeholder="接下来，想做点什么？" maxlength="200" required>
+        <button class="primary" type="submit">＋ 添加</button>
+      </form>
+      <div class="toolbar">
+        <div class="filters" role="group" aria-label="筛选任务">
+          <button class="filter" type="button" data-filter="all" aria-pressed="true">全部</button>
+          <button class="filter" type="button" data-filter="active" aria-pressed="false">未完成</button>
+          <button class="filter" type="button" data-filter="done" aria-pressed="false">已完成</button>
+        </div>
+        <button class="text-button" id="clear" type="button" disabled>清除已完成</button>
+      </div>
+      <ul id="tasks" aria-label="任务列表"></ul>
+      <div id="empty" class="empty"><span class="empty-icon" aria-hidden="true">☀</span><strong id="empty-title">清单很轻，心也一样。</strong><p id="empty-copy">在上方写下第一件小事，按回车即可添加。</p></div>
+      <div class="foot" id="storage-hint">无需登录 · 数据只保存在当前浏览器</div>
+    </section>
+    <div class="notice" role="status"><span id="message"></span><button class="undo" id="undo" type="button" hidden>撤销</button></div>
+    <footer><span>留一点专注，给重要的小事。</span><a href="https://github.com/wujarjun/little-todo" target="_blank" rel="noopener noreferrer">GitHub ↗</a></footer>
+  </main>
+  <script>
+    'use strict';
+    const STORAGE_KEY = 'little-todo.tasks.v1';
+    const THEME_KEY = 'little-todo.theme.v1';
+    const $ = (selector) => document.querySelector(selector);
+    const list = $('#tasks');
+    const input = $('#new-task');
+    let tasks = [];
+    let filter = 'all';
+    let undoSnapshot = null;
+    let canSave = true;
+
+    function notify(message, undoable = false) {
+      $('#message').textContent = message;
+      $('#undo').hidden = !undoable;
+    }
+
+    function load() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved !== null) {
+          const data = JSON.parse(saved);
+          const ids = new Set();
+          if (!Array.isArray(data) || data.some(t => {
+            if (!t || typeof t.id !== 'string' || ids.has(t.id) || typeof t.text !== 'string' || !t.text.trim() || t.text.length > 200 || typeof t.done !== 'boolean') return true;
+            ids.add(t.id);
+            return false;
+          })) throw new Error('Invalid task data');
+          tasks = data.map(({ id, text, done }) => ({ id, text, done }));
+        }
+      } catch {
+        canSave = false;
+        $('#storage-hint').textContent = '无法读取本地数据：当前更改仅在本次打开期间有效';
+        notify('浏览器中的原有数据未被覆盖。请检查浏览器存储设置。');
+      }
+    }
+
+    function save() {
+      if (!canSave) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch {
+        canSave = false;
+        $('#storage-hint').textContent = '保存失败：当前更改仅在本次打开期间有效';
+        notify('浏览器存储不可用或空间已满，请保留此页面。', undoSnapshot !== null);
+      }
+    }
+
+    function render() {
+      const completed = tasks.filter(t => t.done).length;
+      const remaining = tasks.length - completed;
+      const percent = tasks.length ? Math.round(completed / tasks.length * 100) : 0;
+      $('#remaining').textContent = tasks.length ? `还有 ${remaining} 件小事，已完成 ${completed} 件` : '今天，从一件小事开始';
+      $('#percent').textContent = `${percent}%`;
+      $('#progress').value = percent;
+      $('#progress').textContent = `${percent}%`;
+      $('#clear').disabled = completed === 0;
+      const visible = tasks.filter(t => filter === 'all' || (filter === 'done' ? t.done : !t.done));
+      const fragment = document.createDocumentFragment();
+      for (const task of visible) {
+        const row = document.createElement('li');
+        row.className = `task${task.done ? ' done' : ''}`;
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.className = 'check';
+        check.id = `task-${task.id}`;
+        check.checked = task.done;
+        check.addEventListener('change', () => {
+          task.done = check.checked;
+          undoSnapshot = null;
+          notify(task.done ? '又完成了一件小事。' : '任务已重新标记为未完成。');
+          save();
+          render();
+          const replacement = document.getElementById(check.id);
+          if (replacement) replacement.focus();
+          else document.querySelector(`[data-filter="${filter}"]`).focus();
+        });
+        const label = document.createElement('label');
+        label.className = 'task-label';
+        label.htmlFor = check.id;
+        label.textContent = task.text;
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `删除任务：${task.text}`);
+        remove.addEventListener('click', () => {
+          undoSnapshot = tasks.map(t => ({ ...t }));
+          tasks = tasks.filter(t => t.id !== task.id);
+          notify('任务已删除。', true);
+          save();
+          render();
+          $('#undo').focus();
+        });
+        row.append(check, label, remove);
+        fragment.append(row);
+      }
+      list.replaceChildren(fragment);
+      $('#empty').hidden = visible.length > 0;
+      const emptyMessages = {
+        all: ['清单很轻，心也一样。', '在上方写下第一件小事，按回车即可添加。'],
+        active: [tasks.length ? '都完成了，给自己一点掌声。' : '暂时没有待办事项。', '休息一下，或写下下一件想做的小事。'],
+        done: ['还没有已完成的事项。', '完成一件小事后，勾选它左边的方框。']
+      };
+      $('#empty-title').textContent = emptyMessages[filter][0];
+      $('#empty-copy').textContent = emptyMessages[filter][1];
+    }
+
+    $('#add-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) { input.value = ''; input.focus(); return; }
+      const id = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+      tasks.unshift({ id, text, done: false });
+      undoSnapshot = null;
+      input.value = '';
+      setFilter('all');
+      notify('新任务已添加。');
+      save();
+      input.focus();
+    });
+
+    function setFilter(value) {
+      filter = value;
+      document.querySelectorAll('[data-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === filter)));
+      render();
+    }
+    document.querySelectorAll('[data-filter]').forEach(button => button.addEventListener('click', () => setFilter(button.dataset.filter)));
+    $('#clear').addEventListener('click', () => {
+      undoSnapshot = tasks.map(t => ({ ...t }));
+      const count = tasks.filter(t => t.done).length;
+      tasks = tasks.filter(t => !t.done);
+      notify(`已清除 ${count} 件已完成事项。`, true);
+      save();
+      render();
+      $('#undo').focus();
+    });
+    $('#undo').addEventListener('click', () => {
+      if (undoSnapshot === null) return;
+      tasks = undoSnapshot;
+      undoSnapshot = null;
+      notify('已恢复删除前的清单。');
+      save();
+      render();
+      input.focus();
+    });
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      const nextLabel = theme === 'dark' ? '浅色模式' : '深色模式';
+      $('#theme').textContent = nextLabel;
+      $('#theme').setAttribute('aria-label', `切换至${nextLabel}`);
+    }
+    let initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    try {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'light' || savedTheme === 'dark') initialTheme = savedTheme;
+    } catch { /* The app still works when browser storage is unavailable. */ }
+    applyTheme(initialTheme);
+    $('#theme').addEventListener('click', () => {
+      const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      applyTheme(theme);
+      try { localStorage.setItem(THEME_KEY, theme); } catch { /* Theme is kept for this session. */ }
+    });
+    load();
+    render();
+  </script>
+</body>
+</html>
